@@ -7,7 +7,7 @@
 #include "randombytes.h"
 #include "symmetric.h"
 #include "smallpoly.h"
-
+#include "stack.h"
 /*************************************************
 * Name:        crypto_sign_keypair
 *
@@ -90,6 +90,7 @@ int crypto_sign_signature(uint8_t *sig,
   polyvecl y, z;
   polyveck t0, w1, w0;
   poly cp;
+  uint8_t ccomp[68];
   poly matel;
   shake256incctx state;
 
@@ -155,7 +156,11 @@ rej:
   shake256_inc_finalize(&state);
   shake256_inc_squeeze(sig, SEEDBYTES, &state);
   poly_challenge(&cp, sig);
-  
+
+  // TODO: this is no use so far, but seems to work
+  poly_challenge_compress(ccomp, &cp);
+  poly_challenge_decompress(&cp, ccomp);
+
   poly_small_ntt_precomp(&cp_small, &cp_small_prime, &cp);
   poly_ntt(&cp);
 
