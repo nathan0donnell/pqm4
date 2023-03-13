@@ -88,7 +88,7 @@ int crypto_sign_signature(uint8_t *sig,
   uint8_t *rho, *tr, *key, *mu, *rhoprime;
   uint16_t nonce = 0;
   polyvecl y, z;
-  polyveck t0, w1, w0;
+  polyveck w1, w0;
   poly cp;
   uint8_t ccomp[68];
   poly matel;
@@ -104,7 +104,7 @@ int crypto_sign_signature(uint8_t *sig,
   key = tr + SEEDBYTES;
   mu = key + SEEDBYTES;
   rhoprime = mu + CRHBYTES;
-  unpack_sk(rho, tr, key, &t0, s1_prime, s2_prime, sk);
+  unpack_sk_stack(rho, tr, key, s1_prime, s2_prime, sk);
 
   /* Compute CRH(tr, msg) */
   shake256_inc_init(&state);
@@ -122,8 +122,6 @@ int crypto_sign_signature(uint8_t *sig,
   /* Transform vectors */
   polyvecl_small_ntt(s1_prime);
   polyveck_small_ntt(s2_prime);
-
-  polyveck_ntt(&t0);
 
 rej:
   /* Sample intermediate vector y */
@@ -157,12 +155,9 @@ rej:
   shake256_inc_squeeze(sig, SEEDBYTES, &state);
   poly_challenge(&cp, sig);
 
-  // TODO: this is no use so far, but seems to work
   poly_challenge_compress(ccomp, &cp);
-  poly_challenge_decompress(&cp, ccomp);
 
   poly_small_ntt_precomp(&cp_small, &cp_small_prime, &cp);
-  poly_ntt(&cp);
 
   /* Compute z, reject if it reveals secret */
   polyvecl_small_basemul_invntt(&z, &cp_small, &cp_small_prime, s1_prime);
@@ -188,11 +183,10 @@ rej:
     if(poly_chknorm(&w0.vec[i], GAMMA2 - BETA))
       goto rej;
 
-    /* Compute hints for w1 */
-    poly_pointwise_montgomery(tmp, &cp, &t0.vec[i]);
+    poly_schoolbook(tmp, ccomp, sk + SEEDBYTES + SEEDBYTES + SEEDBYTES +
+      L*POLYETA_PACKEDBYTES + K*POLYETA_PACKEDBYTES + i*POLYT0_PACKEDBYTES);
 
-    poly_invntt_tomont(tmp);
-    poly_reduce(tmp);
+    /* Compute hints for w1 */
 
     if(poly_chknorm(tmp, GAMMA2))
       goto rej;
