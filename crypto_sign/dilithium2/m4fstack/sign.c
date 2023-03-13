@@ -87,9 +87,10 @@ int crypto_sign_signature(uint8_t *sig,
   uint8_t seedbuf[3*SEEDBYTES + 2*CRHBYTES];
   uint8_t *rho, *tr, *key, *mu, *rhoprime;
   uint16_t nonce = 0;
-  polyvecl mat[K], y, z;
+  polyvecl y, z;
   polyveck t0, w1, w0;
   poly cp;
+  poly matel;
   shake256incctx state;
 
   smallpoly s1_prime[L];
@@ -117,8 +118,7 @@ int crypto_sign_signature(uint8_t *sig,
   shake256(rhoprime, CRHBYTES, key, SEEDBYTES + CRHBYTES);
 #endif
 
-  /* Expand matrix and transform vectors */
-  polyvec_matrix_expand(mat, rho);
+  /* Transform vectors */
   polyvecl_small_ntt(s1_prime);
   polyveck_small_ntt(s2_prime);
 
@@ -131,7 +131,16 @@ rej:
   /* Matrix-vector multiplication */
   z = y;
   polyvecl_ntt(&z);
-  polyvec_matrix_pointwise_montgomery(&w1, mat, &z);
+
+  for (size_t k_idx = 0; k_idx < K; k_idx++) {
+      poly_uniform(&matel, rho, (k_idx << 8) + 0);
+      poly_pointwise_montgomery(&w1.vec[k_idx],  &matel, &z.vec[0]);
+      for (size_t l_idx = 1; l_idx < L; l_idx++) {
+        poly_uniform(&matel, rho, (k_idx << 8) + l_idx);
+        poly_pointwise_acc_montgomery(&w1.vec[k_idx],  &matel, &z.vec[l_idx]);
+      }
+  }
+
   polyveck_reduce(&w1);
   polyveck_invntt_tomont(&w1);
 
