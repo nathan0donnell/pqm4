@@ -87,7 +87,6 @@ int crypto_sign_signature(uint8_t *sig,
   uint8_t seedbuf[3*SEEDBYTES + 2*CRHBYTES];
   uint8_t *rho, *tr, *key, *mu, *rhoprime;
   uint16_t nonce = 0;
-  polyvecl y, z;
   uint8_t wcomp[K][768];
 
   poly cp;
@@ -125,31 +124,34 @@ int crypto_sign_signature(uint8_t *sig,
   polyveck_small_ntt(s2_prime);
 
 rej:
-  /* Sample intermediate vector y */
-  polyvecl_uniform_gamma1(&y, rhoprime, nonce++);
-
-  /* Matrix-vector multiplication */
-  z = y;
-  polyvecl_ntt(&z);
 
   for (size_t k_idx = 0; k_idx < K; k_idx++) {
       for(size_t i=0;i<768;i++){
         wcomp[k_idx][i] = 0;
       }
+  }
 
 
-      for (size_t l_idx = 0; l_idx < L; l_idx++) {
-        poly_uniform(&tmp0, rho, (k_idx << 8) + l_idx);
-        poly_pointwise_montgomery(&tmp0,  &tmp0, &z.vec[l_idx]);
-        polyw_add(wcomp[k_idx], &tmp0);
-      }
+  for(size_t l_idx=0; l_idx < L; l_idx++){
+    /* Sample intermediate vector y */
+    poly_uniform_gamma1(&tmp1, rhoprime, L*nonce + l_idx);
+    poly_ntt(&tmp1);
 
+    /* Matrix-vector multiplication */
+    for (size_t k_idx = 0; k_idx < K; k_idx++) {
+      poly_uniform(&tmp0, rho, (k_idx << 8) + l_idx);
+      poly_pointwise_montgomery(&tmp0,  &tmp0, &tmp1);
+      polyw_add(wcomp[k_idx], &tmp0);
+    }
+  }
+  nonce++;
+
+  for (size_t k_idx = 0; k_idx < K; k_idx++) {
       polyw_unpack(&tmp0, wcomp[k_idx]);
       poly_invntt_tomont(&tmp0);
       poly_caddq(&tmp0);
 
       polyw_pack(wcomp[k_idx], &tmp0);
-
       poly_decompose_w1(&tmp0, &tmp0);
       polyw1_pack(&sig[k_idx*POLYW1_PACKEDBYTES], &tmp0);
   }
@@ -165,17 +167,23 @@ rej:
 
   poly_small_ntt_precomp(&cp_small, &cp_small_prime, &cp);
 
-  /* Compute z, reject if it reveals secret */
-  polyvecl_small_basemul_invntt(&z, &cp_small, &cp_small_prime, s1_prime);
+   /* Compute z, reject if it reveals secret */
+  for(size_t l_idx=0;l_idx < L; l_idx++){
+    poly_small_basemul_invntt(&tmp0, &cp_small, &cp_small_prime, &s1_prime[l_idx]);
+    poly_uniform_gamma1(&tmp1, rhoprime, L*(nonce-1) + l_idx);
 
-  polyvecl_add(&z, &z, &y);
-  polyvecl_reduce(&z);
-  if(polyvecl_chknorm(&z, GAMMA1 - BETA))
-    goto rej;
+    poly_add(&tmp0, &tmp0, &tmp1);
+
+    poly_reduce(&tmp0);
+
+    if(poly_chknorm(&tmp0, GAMMA1 - BETA))
+      goto rej;
+
+    polyz_pack(sig + SEEDBYTES + l_idx*POLYZ_PACKEDBYTES, &tmp0);
+  }
 
 
   /* Write signature */
-  pack_sig_z(sig, &z);
   unsigned int hint_n = 0;
   unsigned int hints_written = 0;
   /* Check that subtracting cs2 does not change high bits of w and low bits
