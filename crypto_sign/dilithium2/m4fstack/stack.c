@@ -1,4 +1,8 @@
 #include "stack.h"
+#include "fips202.h"
+#include "symmetric.h"
+#include "vector.h"
+#include "reduce.h"
 
 void poly_challenge_compress(uint8_t c[68], const poly *cp){
   unsigned int i, pos;
@@ -156,26 +160,26 @@ void polyw_unpack(poly *w, const uint8_t buf[3*256]) {
   }
 }
 
+
+static void polyw_add_idx(uint8_t buf[3*256], int32_t a, size_t i){
+  int32_t coeff;
+  coeff =  buf[i*3 + 0];
+  coeff |= (int32_t)buf[i*3 + 1] << 8;
+  coeff |= (int32_t)buf[i*3 + 2] << 16;
+
+  coeff += a;
+
+  coeff = freeze(coeff);
+
+  buf[i*3 + 0] = coeff;
+  buf[i*3 + 1] = coeff >> 8;
+  buf[i*3 + 2] = coeff >> 16;
+}
+
 void polyw_add(uint8_t buf[3*256], poly *p){
   unsigned int i;
-  int32_t coeff;
   for(i = 0; i < N; i++){
-    coeff =  buf[i*3 + 0];
-    coeff |= (int32_t)buf[i*3 + 1] << 8;
-    coeff |= (int32_t)buf[i*3 + 2] << 16;
-
-    coeff += p->coeffs[i];
-
-
-    // // TODO: constant-time reduction here
-    coeff %= Q;
-    if(coeff < 0){
-        coeff += Q;
-    }
-
-    buf[i*3 + 0] = coeff;
-    buf[i*3 + 1] = coeff >> 8;
-    buf[i*3 + 2] = coeff >> 16;
+    polyw_add_idx(buf, p->coeffs[i], i);
   }
 }
 
@@ -207,4 +211,36 @@ void unpack_sk_s1(smallpoly *a, uint8_t *sk, size_t idx) {
 }
 void unpack_sk_s2(smallpoly *a, uint8_t *sk, size_t idx) {
   small_polyeta_unpack(a, sk + 3*SEEDBYTES + L*POLYETA_PACKEDBYTES + idx*POLYETA_PACKEDBYTES);
+}
+
+
+// TODO: in the end increase this buffer size as far as possible
+#define POLY_UNIFORM_BUFFERSIZE 3
+void poly_uniform_pointwise_montgomery_polywadd_stack(uint8_t wcomp[3*N], poly *b, uint8_t seed[SEEDBYTES], uint16_t nonce){
+  //externalize the Keccak state
+  shake128incctx state;
+  int32_t t;
+  uint8_t buf[POLY_UNIFORM_BUFFERSIZE*3];
+  {
+    size_t ctr = 0;
+    stream128_init(&state, seed, nonce);
+
+    do {
+      shake128_inc_squeeze(buf, sizeof buf, &state);
+
+      for(size_t pos=0; pos < sizeof buf && ctr < N; pos += 3){
+        t  = buf[pos];
+        t |= (uint32_t)buf[pos+1] << 8;
+        t |= (uint32_t)buf[pos+2] << 16;
+        t &= 0x7FFFFF;
+
+        if(t < Q) {
+          t = montgomery_reduce((int64_t)t * b->coeffs[ctr]);
+          polyw_add_idx(wcomp, t, ctr);
+          ctr++;
+        }
+      }
+    } while(ctr < N);
+
+  }
 }

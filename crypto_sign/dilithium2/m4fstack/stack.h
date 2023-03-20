@@ -28,4 +28,7 @@ void poly_decompose_w1(poly *a1, const poly *a);
 
 void unpack_sk_s1(smallpoly *a, uint8_t *sk, size_t idx);
 void unpack_sk_s2(smallpoly *a, uint8_t *sk, size_t idx);
+
+
+void poly_uniform_pointwise_montgomery_polywadd_stack(uint8_t wcomp[3*N], poly *b, uint8_t  seed[SEEDBYTES], uint16_t nonce);
 #endif

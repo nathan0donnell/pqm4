@@ -127,7 +127,6 @@ rej:
       }
   }
 
-
   for(size_t l_idx=0; l_idx < L; l_idx++){
     /* Sample intermediate vector y */
     poly_uniform_gamma1(&tmp1, rhoprime, L*nonce + l_idx);
@@ -135,9 +134,8 @@ rej:
 
     /* Matrix-vector multiplication */
     for (size_t k_idx = 0; k_idx < K; k_idx++) {
-      poly_uniform(&tmp0, rho, (k_idx << 8) + l_idx);
-      poly_pointwise_montgomery(&tmp0,  &tmp0, &tmp1);
-      polyw_add(wcomp[k_idx], &tmp0);
+      // sampling of y and packing into wcomp inlined into the basemul
+      poly_uniform_pointwise_montgomery_polywadd_stack(&wcomp[k_idx], &tmp1, rho, (k_idx << 8) + l_idx);
     }
   }
   nonce++;
@@ -169,6 +167,8 @@ rej:
     small_ntt(&stmp0);
 
     poly_small_basemul_invntt(&tmp0, &cp_small, &cp_small_prime, &stmp0);
+
+    // TODO: eliminate tmp1
     poly_uniform_gamma1(&tmp1, rhoprime, L*(nonce-1) + l_idx);
 
     poly_add(&tmp0, &tmp0, &tmp1);
