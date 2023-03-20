@@ -119,8 +119,6 @@ void poly_schoolbook(poly *c, const uint8_t ccomp[68], const uint8_t *t0){
 void unpack_sk_stack(uint8_t rho[SEEDBYTES],
                uint8_t tr[SEEDBYTES],
                uint8_t key[SEEDBYTES],
-               smallpoly s1[L],
-               smallpoly s2[K],
                const uint8_t sk[CRYPTO_SECRETKEYBYTES])
 {
   unsigned int i;
@@ -136,14 +134,6 @@ void unpack_sk_stack(uint8_t rho[SEEDBYTES],
   for(i = 0; i < SEEDBYTES; ++i)
     tr[i] = sk[i];
   sk += SEEDBYTES;
-
-  for(i=0; i < L; ++i)
-    small_polyeta_unpack(&s1[i], sk + i*POLYETA_PACKEDBYTES);
-  sk += L*POLYETA_PACKEDBYTES;
-
-  for(i=0; i < K; ++i)
-    small_polyeta_unpack(&s2[i], sk + i*POLYETA_PACKEDBYTES);
-  sk += K*POLYETA_PACKEDBYTES;
 }
 
 void polyw_pack(uint8_t buf[3*256], poly *w){
@@ -209,4 +199,12 @@ void poly_decompose_w1(poly *a1, const poly *a) {
 
   for(i = 0; i < N; ++i)
     a1->coeffs[i] = decompose_w1(a->coeffs[i]);
+}
+
+
+void unpack_sk_s1(smallpoly *a, uint8_t *sk, size_t idx) {
+  small_polyeta_unpack(a, sk + 3*SEEDBYTES + idx*POLYETA_PACKEDBYTES);
+}
+void unpack_sk_s2(smallpoly *a, uint8_t *sk, size_t idx) {
+  small_polyeta_unpack(a, sk + 3*SEEDBYTES + L*POLYETA_PACKEDBYTES + idx*POLYETA_PACKEDBYTES);
 }
