@@ -24,14 +24,11 @@ void polyw_unpack(poly *w, const uint8_t buf[3*256]);
 void polyw_add(uint8_t buf[3*256], poly *p);
 void polyw_sub(poly* c, uint8_t buf[3*256], poly *a);
 
+void poly_highbits(poly *a1, const poly *a);
+void poly_lowbits(poly *a0, const poly *a);
 
-// TODO: rename this to highbits
-void poly_decompose_w1(poly *a1, const poly *a);
-void poly_decompose_w0(poly *a0, const poly *a);
-
-
-void unpack_sk_s1(smallpoly *a, uint8_t *sk, size_t idx);
-void unpack_sk_s2(smallpoly *a, uint8_t *sk, size_t idx);
+void unpack_sk_s1(smallpoly *a, const uint8_t *sk, size_t idx);
+void unpack_sk_s2(smallpoly *a, const uint8_t *sk, size_t idx);
 
 
 void poly_uniform_pointwise_montgomery_polywadd_stack(uint8_t wcomp[3*N], poly *b, uint8_t  seed[SEEDBYTES], uint16_t nonce);

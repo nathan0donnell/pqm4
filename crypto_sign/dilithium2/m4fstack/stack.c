@@ -195,7 +195,7 @@ void polyw_sub(poly* c, uint8_t buf[3*256], poly *a){
   }
 }
 
-static int32_t decompose_w1(int32_t a){
+static int32_t highbits(int32_t a){
   int32_t a1;
 
   a1  = (a + 127) >> 7;
@@ -210,14 +210,14 @@ static int32_t decompose_w1(int32_t a){
   return a1;
 }
 
-void poly_decompose_w1(poly *a1, const poly *a) {
+void poly_highbits(poly *a1, const poly *a) {
   unsigned int i;
 
   for(i = 0; i < N; ++i)
-    a1->coeffs[i] = decompose_w1(a->coeffs[i]);
+    a1->coeffs[i] = highbits(a->coeffs[i]);
 }
 
-static int32_t decompose_w0(int32_t a){
+static int32_t lowbits(int32_t a){
   int32_t a1;
   int32_t a0;
 
@@ -235,17 +235,17 @@ static int32_t decompose_w0(int32_t a){
   return a0;
 }
 
-void poly_decompose_w0(poly *a0, const poly *a){
+void poly_lowbits(poly *a0, const poly *a){
   unsigned int i;
 
   for(i = 0; i < N; ++i)
-    a0->coeffs[i] = decompose_w0(a->coeffs[i]);
+    a0->coeffs[i] = lowbits(a->coeffs[i]);
 }
 
-void unpack_sk_s1(smallpoly *a, uint8_t *sk, size_t idx) {
+void unpack_sk_s1(smallpoly *a, const uint8_t *sk, size_t idx) {
   small_polyeta_unpack(a, sk + 3*SEEDBYTES + idx*POLYETA_PACKEDBYTES);
 }
-void unpack_sk_s2(smallpoly *a, uint8_t *sk, size_t idx) {
+void unpack_sk_s2(smallpoly *a, const uint8_t *sk, size_t idx) {
   small_polyeta_unpack(a, sk + 3*SEEDBYTES + L*POLYETA_PACKEDBYTES + idx*POLYETA_PACKEDBYTES);
 }
 
@@ -281,22 +281,22 @@ void poly_uniform_pointwise_montgomery_polywadd_stack(uint8_t wcomp[3*N], poly *
   }
 }
 
-#define POLY_UNIFORM_BUFFERSIZE 1
+#define POLY_UNIFORM_GAMMA1__BUFFERSIZE 1
 #if GAMMA1 == (1 << 17)
-#define POLY_UNIFORM_BUFFERSIZE_COEFFS (POLY_UNIFORM_BUFFERSIZE*4)
-#define POLY_UNIFORM_BUFFERSIZE_BYTES  (POLY_UNIFORM_BUFFERSIZE*9)
+#define POLY_UNIFORM_GAMMA1__BUFFERSIZE_COEFFS (POLY_UNIFORM_GAMMA1__BUFFERSIZE*4)
+#define POLY_UNIFORM_GAMMA1__BUFFERSIZE_BYTES  (POLY_UNIFORM_GAMMA1__BUFFERSIZE*9)
 #elif GAMMA1 == (1 << 19)
-#define POLY_UNIFORM_BUFFERSIZE_COEFFS (POLY_UNIFORM_BUFFERSIZE*2)
-#define POLY_UNIFORM_BUFFERSIZE_BYTES  (POLY_UNIFORM_BUFFERSIZE*5)
+#define POLY_UNIFORM_GAMMA1__BUFFERSIZE_COEFFS (POLY_UNIFORM_GAMMA1__BUFFERSIZE*2)
+#define POLY_UNIFORM_GAMMA1__BUFFERSIZE_BYTES  (POLY_UNIFORM_GAMMA1__BUFFERSIZE*5)
 #endif
 
 static void polyz_unpack_inplace(int32_t *r){
-  uint8_t *a = r;
+  uint8_t *a = (uint8_t *)r;
 
   unsigned int i,j;
   #if GAMMA1 == (1 << 17)
-  for(j = 0; j < POLY_UNIFORM_BUFFERSIZE; ++j) {
-    i = POLY_UNIFORM_BUFFERSIZE-1-j;
+  for(j = 0; j < POLY_UNIFORM_GAMMA1__BUFFERSIZE; ++j) {
+    i = POLY_UNIFORM_GAMMA1__BUFFERSIZE-1-j;
     int32_t t0;
 
 
@@ -328,8 +328,8 @@ static void polyz_unpack_inplace(int32_t *r){
 
   }
 #elif GAMMA1 == (1 << 19)
-  for(j = 0; j < POLY_UNIFORM_BUFFERSIZE; ++j) {
-    i = POLY_UNIFORM_BUFFERSIZE-1-j;
+  for(j = 0; j < POLY_UNIFORM_GAMMA1__BUFFERSIZE; ++j) {
+    i = POLY_UNIFORM_GAMMA1__BUFFERSIZE-1-j;
     int32_t tmp0, tmp1
 
     tmp0  = a[5*i+2] >> 4;
@@ -352,15 +352,15 @@ static void polyz_unpack_inplace(int32_t *r){
 void poly_uniform_gamma1_add_stack(poly *a, poly *b, const uint8_t seed[CRHBYTES], uint16_t nonce){
   // TODO: externalize the state
   shake256incctx state;
-  int32_t buf[POLY_UNIFORM_BUFFERSIZE_COEFFS];
+  int32_t buf[POLY_UNIFORM_GAMMA1__BUFFERSIZE_COEFFS];
 
   stream256_init(&state, seed, nonce);
-  for(size_t i = 0; i < N/POLY_UNIFORM_BUFFERSIZE_COEFFS; i++){
-    shake256_inc_squeeze(buf, POLY_UNIFORM_BUFFERSIZE_BYTES, &state);
+  for(size_t i = 0; i < N/POLY_UNIFORM_GAMMA1__BUFFERSIZE_COEFFS; i++){
+    shake256_inc_squeeze((uint8_t *)buf, POLY_UNIFORM_GAMMA1__BUFFERSIZE_BYTES, &state);
     polyz_unpack_inplace(buf);
 
-    for(size_t j = 0; j < POLY_UNIFORM_BUFFERSIZE_COEFFS; j++){
-      a->coeffs[i*POLY_UNIFORM_BUFFERSIZE_COEFFS + j] = buf[j] + b->coeffs[i*POLY_UNIFORM_BUFFERSIZE_COEFFS + j];
+    for(size_t j = 0; j < POLY_UNIFORM_GAMMA1__BUFFERSIZE_COEFFS; j++){
+      a->coeffs[i*POLY_UNIFORM_GAMMA1__BUFFERSIZE_COEFFS + j] = buf[j] + b->coeffs[i*POLY_UNIFORM_GAMMA1__BUFFERSIZE_COEFFS + j];
     }
   }
 }
@@ -369,8 +369,8 @@ void poly_uniform_gamma1_add_stack(poly *a, poly *b, const uint8_t seed[CRHBYTES
 static inline int32_t make_hint(int32_t z, int32_t r){
   int32_t r1, v1;
 
-  r1 = decompose_w1(r);
-  v1 = decompose_w1(r+z);
+  r1 = highbits(r);
+  v1 = highbits(r+z);
 
   if(r1 != v1) return 1;
   return 0;
