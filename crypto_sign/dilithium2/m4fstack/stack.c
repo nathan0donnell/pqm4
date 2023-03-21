@@ -183,6 +183,19 @@ void polyw_add(uint8_t buf[3*256], poly *p){
   }
 }
 
+void polyw_add2(poly* c, poly *a, uint8_t buf[3*256]){
+  int32_t coeff;
+
+
+  for(size_t i=0;i<N;i++){
+    coeff =  buf[i*3 + 0];
+    coeff |= (int32_t)buf[i*3 + 1] << 8;
+    coeff |= (int32_t)buf[i*3 + 2] << 16;
+
+    c->coeffs[i] = a->coeffs[i] + coeff;
+  }
+}
+
 static int32_t decompose_w1(int32_t a){
   int32_t a1;
 
@@ -313,8 +326,6 @@ static void polyz_unpack_inplace(int32_t *r){
 }
 
 
-
-#define POLY_UNIFORM_GAMMA1_NBLOCKS ((POLYZ_PACKEDBYTES + STREAM256_BLOCKBYTES - 1)/STREAM256_BLOCKBYTES)
 void poly_uniform_gamma1_add_stack(poly *a, poly *b, const uint8_t seed[CRHBYTES], uint16_t nonce){
   // TODO: externalize the state
   shake256incctx state;
@@ -329,4 +340,36 @@ void poly_uniform_gamma1_add_stack(poly *a, poly *b, const uint8_t seed[CRHBYTES
       a->coeffs[i*POLY_UNIFORM_BUFFERSIZE_COEFFS + j] = buf[j] + b->coeffs[i*POLY_UNIFORM_BUFFERSIZE_COEFFS + j];
     }
   }
+}
+
+
+static inline int32_t make_hint(int32_t z, int32_t r){
+  int32_t r1, v1;
+
+  r1 = decompose_w1(r);
+  v1 = decompose_w1(r+z);
+
+  if(r1 != v1) return 1;
+  return 0;
+}
+
+size_t poly_make_hint_stack(poly *a, poly *t, uint8_t w[768]){
+  int32_t coeff;
+  size_t hints_n = 0;
+  for(size_t i=0;i<N;i++){
+    // unpack coeff from w (contains w - cs2)
+    coeff =  w[i*3 + 0];
+    coeff |= (int32_t)w[i*3 + 1] << 8;
+    coeff |= (int32_t)w[i*3 + 2] << 16;
+
+
+    // compute w - cs2 + c*t0
+    coeff  = coeff + t->coeffs[i];
+
+    a->coeffs[i] = make_hint(-t->coeffs[i], coeff);
+    if(a->coeffs[i] == 1){
+      hints_n++;
+    }
+  }
+  return hints_n;
 }
