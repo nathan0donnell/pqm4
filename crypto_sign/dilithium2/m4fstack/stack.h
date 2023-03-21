@@ -5,8 +5,10 @@
 #include "smallpoly.h"
 #include <stdint.h>
 #include <stddef.h>
+#include "fips202.h"
 
 void poly_challenge_compress(uint8_t c[68], const poly *cp);
+// TODO: remove this one
 void poly_challenge_decompress(poly *cp, const uint8_t c[68]);
 
 
@@ -31,8 +33,8 @@ void unpack_sk_s1(smallpoly *a, const uint8_t *sk, size_t idx);
 void unpack_sk_s2(smallpoly *a, const uint8_t *sk, size_t idx);
 
 
-void poly_uniform_pointwise_montgomery_polywadd_stack(uint8_t wcomp[3*N], poly *b, uint8_t  seed[SEEDBYTES], uint16_t nonce);
-void poly_uniform_gamma1_add_stack(poly *a, poly *b, const uint8_t seed[CRHBYTES], uint16_t nonce);
+void poly_uniform_pointwise_montgomery_polywadd_stack(uint8_t wcomp[3*N], poly *b, uint8_t  seed[SEEDBYTES], uint16_t nonce, shake128incctx *state);
+void poly_uniform_gamma1_add_stack(poly *a, poly *b, const uint8_t seed[CRHBYTES], uint16_t nonce, shake256incctx *state);
 
 size_t poly_make_hint_stack(poly *a, poly *t, uint8_t w[768]);
 #endif

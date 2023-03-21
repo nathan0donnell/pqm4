@@ -93,7 +93,10 @@ int crypto_sign_signature(uint8_t *sig,
 
   uint8_t ccomp[68];
   poly tmp0;
-  shake256incctx state;
+  union {
+    shake128incctx s128;
+    shake256incctx s256;
+  } state;
 
   smallpoly stmp0;
   smallpoly cp_small;
@@ -107,11 +110,11 @@ int crypto_sign_signature(uint8_t *sig,
   unpack_sk_stack(rho, tr, key, sk);
 
   /* Compute CRH(tr, msg) */
-  shake256_inc_init(&state);
-  shake256_inc_absorb(&state, tr, SEEDBYTES);
-  shake256_inc_absorb(&state, m, mlen);
-  shake256_inc_finalize(&state);
-  shake256_inc_squeeze(mu, CRHBYTES, &state);
+  shake256_inc_init(&state.s256);
+  shake256_inc_absorb(&state.s256, tr, SEEDBYTES);
+  shake256_inc_absorb(&state.s256, m, mlen);
+  shake256_inc_finalize(&state.s256);
+  shake256_inc_squeeze(mu, CRHBYTES, &state.s256);
 
 #ifdef DILITHIUM_RANDOMIZED_SIGNING
   randombytes(rhoprime, CRHBYTES);
@@ -135,7 +138,7 @@ rej:
     /* Matrix-vector multiplication */
     for (size_t k_idx = 0; k_idx < K; k_idx++) {
       // sampling of y and packing into wcomp inlined into the basemul
-      poly_uniform_pointwise_montgomery_polywadd_stack(wcomp[k_idx], &tmp0, rho, (k_idx << 8) + l_idx);
+      poly_uniform_pointwise_montgomery_polywadd_stack(wcomp[k_idx], &tmp0, rho, (k_idx << 8) + l_idx, &state.s128);
     }
   }
   nonce++;
@@ -150,11 +153,11 @@ rej:
       polyw1_pack(&sig[k_idx*POLYW1_PACKEDBYTES], &tmp0);
   }
 
-  shake256_inc_init(&state);
-  shake256_inc_absorb(&state, mu, CRHBYTES);
-  shake256_inc_absorb(&state, sig, K*POLYW1_PACKEDBYTES);
-  shake256_inc_finalize(&state);
-  shake256_inc_squeeze(sig, SEEDBYTES, &state);
+  shake256_inc_init(&state.s256);
+  shake256_inc_absorb(&state.s256, mu, CRHBYTES);
+  shake256_inc_absorb(&state.s256, sig, K*POLYW1_PACKEDBYTES);
+  shake256_inc_finalize(&state.s256);
+  shake256_inc_squeeze(sig, SEEDBYTES, &state.s256);
   poly_challenge(&tmp0, sig);
 
   poly_challenge_compress(ccomp, &tmp0);
@@ -169,7 +172,7 @@ rej:
     poly_small_basemul_invntt(&tmp0, &cp_small, &cp_small_prime, &stmp0);
 
 
-    poly_uniform_gamma1_add_stack(&tmp0, &tmp0, rhoprime, L*(nonce-1) + l_idx);
+    poly_uniform_gamma1_add_stack(&tmp0, &tmp0, rhoprime, L*(nonce-1) + l_idx, &state.s256);
 
     poly_reduce(&tmp0);
 
