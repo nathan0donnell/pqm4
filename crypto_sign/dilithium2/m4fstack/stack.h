@@ -31,4 +31,5 @@ void unpack_sk_s2(smallpoly *a, uint8_t *sk, size_t idx);
 
 
 void poly_uniform_pointwise_montgomery_polywadd_stack(uint8_t wcomp[3*N], poly *b, uint8_t  seed[SEEDBYTES], uint16_t nonce);
+void poly_uniform_gamma1_add_stack(poly *a, poly *b, const uint8_t seed[CRHBYTES], uint16_t nonce);
 #endif

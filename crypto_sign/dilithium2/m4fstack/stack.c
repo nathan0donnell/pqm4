@@ -217,7 +217,7 @@ void unpack_sk_s2(smallpoly *a, uint8_t *sk, size_t idx) {
 // TODO: in the end increase this buffer size as far as possible
 #define POLY_UNIFORM_BUFFERSIZE 3
 void poly_uniform_pointwise_montgomery_polywadd_stack(uint8_t wcomp[3*N], poly *b, uint8_t seed[SEEDBYTES], uint16_t nonce){
-  //externalize the Keccak state
+  // TODO: externalize the Keccak state
   shake128incctx state;
   int32_t t;
   uint8_t buf[POLY_UNIFORM_BUFFERSIZE*3];
@@ -242,5 +242,91 @@ void poly_uniform_pointwise_montgomery_polywadd_stack(uint8_t wcomp[3*N], poly *
       }
     } while(ctr < N);
 
+  }
+}
+
+#define POLY_UNIFORM_BUFFERSIZE 1
+#if GAMMA1 == (1 << 17)
+#define POLY_UNIFORM_BUFFERSIZE_COEFFS (POLY_UNIFORM_BUFFERSIZE*4)
+#define POLY_UNIFORM_BUFFERSIZE_BYTES  (POLY_UNIFORM_BUFFERSIZE*9)
+#elif GAMMA1 == (1 << 19)
+#define POLY_UNIFORM_BUFFERSIZE_COEFFS (POLY_UNIFORM_BUFFERSIZE*2)
+#define POLY_UNIFORM_BUFFERSIZE_BYTES  (POLY_UNIFORM_BUFFERSIZE*5)
+#endif
+
+static void polyz_unpack_inplace(int32_t *r){
+  uint8_t *a = r;
+
+  unsigned int i,j;
+  #if GAMMA1 == (1 << 17)
+  for(j = 0; j < POLY_UNIFORM_BUFFERSIZE; ++j) {
+    i = POLY_UNIFORM_BUFFERSIZE-1-j;
+    int32_t t0;
+
+
+    r[4*i+3]  = a[9*i+6] >> 6;
+    r[4*i+3] |= (uint32_t)a[9*i+7] << 2;
+    r[4*i+3] |= (uint32_t)a[9*i+8] << 10;
+    r[4*i+3] &= 0x3FFFF;
+
+    r[4*i+2]   = a[9*i+4] >> 4;
+    r[4*i+2]  |= (uint32_t)a[9*i+5] << 4;
+    r[4*i+2]  |= (uint32_t)a[9*i+6] << 12;
+    r[4*i+2]  &= 0x3FFFF;
+
+
+    r[4*i+1] = (uint32_t)a[9*i+4] << 14;
+    r[4*i+1] |= a[9*i+2] >> 2;
+    r[4*i+1] |= (uint32_t)a[9*i+3] << 6;
+    r[4*i+1] &= 0x3FFFF;
+
+    t0  = a[9*i+0];
+    t0 |= (uint32_t)a[9*i+1] << 8;
+    t0 |= (uint32_t)a[9*i+2] << 16;
+    t0 &= 0x3FFFF;
+
+    r[4*i+0] = GAMMA1 - t0;
+    r[4*i+1] = GAMMA1 - r[4*i+1];
+    r[4*i+2] = GAMMA1 - r[4*i+2];
+    r[4*i+3] = GAMMA1 - r[4*i+3];
+
+  }
+#elif GAMMA1 == (1 << 19)
+  for(j = 0; j < POLY_UNIFORM_BUFFERSIZE; ++j) {
+    i = POLY_UNIFORM_BUFFERSIZE-1-j;
+    int32_t tmp0, tmp1
+
+    tmp0  = a[5*i+2] >> 4;
+    tmp0 |= (uint32_t)a[5*i+3] << 4;
+    tmp0 |= (uint32_t)a[5*i+4] << 12;
+    tmp0 &= 0xFFFFF;
+
+    tmp1  = a[5*i+0];
+    tmp1 |= (uint32_t)a[5*i+1] << 8;
+    tmp1 |= (uint32_t)a[5*i+2] << 16;
+    tmp1 &= 0xFFFFF;
+
+    r[2*i+0] = GAMMA1 - tmp0;
+    r[2*i+1] = GAMMA1 - tmp1;
+  }
+#endif
+}
+
+
+
+#define POLY_UNIFORM_GAMMA1_NBLOCKS ((POLYZ_PACKEDBYTES + STREAM256_BLOCKBYTES - 1)/STREAM256_BLOCKBYTES)
+void poly_uniform_gamma1_add_stack(poly *a, poly *b, const uint8_t seed[CRHBYTES], uint16_t nonce){
+  // TODO: externalize the state
+  shake256incctx state;
+  int32_t buf[POLY_UNIFORM_BUFFERSIZE_COEFFS];
+
+  stream256_init(&state, seed, nonce);
+  for(size_t i = 0; i < N/POLY_UNIFORM_BUFFERSIZE_COEFFS; i++){
+    shake256_inc_squeeze(buf, POLY_UNIFORM_BUFFERSIZE_BYTES, &state);
+    polyz_unpack_inplace(buf);
+
+    for(size_t j = 0; j < POLY_UNIFORM_BUFFERSIZE_COEFFS; j++){
+      a->coeffs[i*POLY_UNIFORM_BUFFERSIZE_COEFFS + j] = buf[j] + b->coeffs[i*POLY_UNIFORM_BUFFERSIZE_COEFFS + j];
+    }
   }
 }
