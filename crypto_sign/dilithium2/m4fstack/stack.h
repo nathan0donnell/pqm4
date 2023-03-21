@@ -22,12 +22,12 @@ void polyw_pack(uint8_t buf[3*256], poly *w);
 void polyw_unpack(poly *w, const uint8_t buf[3*256]);
 
 void polyw_add(uint8_t buf[3*256], poly *p);
-//TODO this can be removed
-void polyw_add2(poly* c, poly *a, uint8_t buf[3*256]);
+void polyw_sub(poly* c, uint8_t buf[3*256], poly *a);
 
 
 // TODO: rename this to highbits
 void poly_decompose_w1(poly *a1, const poly *a);
+void poly_decompose_w0(poly *a0, const poly *a);
 
 
 void unpack_sk_s1(smallpoly *a, uint8_t *sk, size_t idx);
