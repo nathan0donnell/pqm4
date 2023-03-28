@@ -12,13 +12,6 @@ void poly_challenge_decompress(poly *cp, const uint8_t c[68]);
 
 
 void poly_schoolbook(poly *c, const uint8_t ccomp[68], const uint8_t *t0);
-
-// TODO: replace this with individual functions later
-void unpack_sk_stack(uint8_t rho[SEEDBYTES],
-               uint8_t tr[SEEDBYTES],
-               uint8_t key[SEEDBYTES],
-               const uint8_t sk[CRYPTO_SECRETKEYBYTES]);
-
 void polyw_pack(uint8_t buf[3*256], poly *w);
 void polyw_unpack(poly *w, const uint8_t buf[3*256]);
 

@@ -86,8 +86,9 @@ int crypto_sign_signature(uint8_t *sig,
                           size_t mlen,
                           const uint8_t *sk)
 {
-  uint8_t seedbuf[3*SEEDBYTES + 2*CRHBYTES];
-  uint8_t *rho, *tr, *key, *mu, *rhoprime;
+  uint8_t buf[2*CRHBYTES];
+  uint8_t *mu, *rhoprime;
+  const uint8_t *tr, *key, *rho;
   uint16_t nonce = 0;
   uint8_t wcomp[K][768];
 
@@ -111,12 +112,11 @@ int crypto_sign_signature(uint8_t *sig,
 
   smallhalfpoly cp_small_prime;
 
-  rho = seedbuf;
-  tr = rho + SEEDBYTES;
-  key = tr + SEEDBYTES;
-  mu = key + SEEDBYTES;
+  rho = sk;
+  tr = sk + SEEDBYTES*2;
+  key = sk + SEEDBYTES;
+  mu = buf;
   rhoprime = mu + CRHBYTES;
-  unpack_sk_stack(rho, tr, key, sk);
 
   /* Compute CRH(tr, msg) */
   shake256_inc_init(&state.s256);
@@ -128,7 +128,11 @@ int crypto_sign_signature(uint8_t *sig,
 #ifdef DILITHIUM_RANDOMIZED_SIGNING
   randombytes(rhoprime, CRHBYTES);
 #else
-  shake256(rhoprime, CRHBYTES, key, SEEDBYTES + CRHBYTES);
+  shake256_inc_init(&state.s256);
+  shake256_inc_absorb(&state.s256, key, SEEDBYTES);
+  shake256_inc_absorb(&state.s256, mu, CRHBYTES);
+  shake256_inc_finalize(&state.s256);
+  shake256_inc_squeeze(rhoprime, CRHBYTES, &state.s256);
 #endif
 
 rej:

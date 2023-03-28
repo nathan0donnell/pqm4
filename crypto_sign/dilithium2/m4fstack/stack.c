@@ -119,27 +119,6 @@ void poly_schoolbook(poly *c, const uint8_t ccomp[68], const uint8_t *t0){
 }
 
 
-// TODO: remove this later
-void unpack_sk_stack(uint8_t rho[SEEDBYTES],
-               uint8_t tr[SEEDBYTES],
-               uint8_t key[SEEDBYTES],
-               const uint8_t sk[CRYPTO_SECRETKEYBYTES])
-{
-  unsigned int i;
-
-  for(i = 0; i < SEEDBYTES; ++i)
-    rho[i] = sk[i];
-  sk += SEEDBYTES;
-
-  for(i = 0; i < SEEDBYTES; ++i)
-    key[i] = sk[i];
-  sk += SEEDBYTES;
-
-  for(i = 0; i < SEEDBYTES; ++i)
-    tr[i] = sk[i];
-  sk += SEEDBYTES;
-}
-
 void polyw_pack(uint8_t buf[3*256], poly *w){
   poly_reduce(w);
   poly_caddq(w);
