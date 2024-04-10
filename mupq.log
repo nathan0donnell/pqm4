@@ -1,0 +1,5 @@
+2024-04-10 14:44:07,428 BoardTestCase INFO: Runnning kyber512-ascon - m4fstack - test
+2024-04-10 14:44:07,428 Implementation INFO: Building kyber512-ascon - m4fstack - test
+2024-04-10 14:44:07,540 Implementation DEBUG: make stdout output:
+make: 'bin/crypto_kem_kyber512-ascon_m4fstack_test.hex' is up to date.
+2024-04-10 14:44:09,059 Platform DEBUG: Found start pattern: b'=========================\n'
