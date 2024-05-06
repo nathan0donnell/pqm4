@@ -1,0 +1,32 @@
+Speed Evaluation,,,,,,,,,,
+Key Encapsulation Schemes,,,,,,,,,,
+Scheme,Implementation,Key Generation [cycles] (mean),Key Generation [cycles] (min),Key Generation [cycles] (max),Encapsulation [cycles] (mean),Encapsulation [cycles] (min),Encapsulation [cycles] (max),Decapsulation [cycles] (mean),Decapsulation [cycles] (min),Decapsulation [cycles] (max)
+kyber512 (1 executions),clean,579236,579236,579236,685255,685255,685255,864310,864310,864310
+kyber512 (1 executions),m4fspeed,394015,394015,394015,398215,398215,398215,435558,435558,435558
+kyber512 (1 executions),m4fstack,392807,392807,392807,399203,399203,399203,436609,436609,436609
+Signature Schemes,,,,,,,,,,
+Scheme,Implementation,Key Generation [cycles] (mean),Key Generation [cycles] (min),Key Generation [cycles] (max),Sign [cycles] (mean),Sign [cycles] (min),Sign [cycles] (max),Verify [cycles] (mean),Verify [cycles] (min),Verify [cycles] (max)
+Memory Evaluation,,,,,,,,,,
+Key Encapsulation Schemes,,,,,,,,,,
+Scheme,Implementation,Key Generation [bytes],Encapsulation [bytes],Decapsulation [bytes],,,,,,
+kyber512,clean,6160,8792,9560,,,,,,
+kyber512,m4fspeed,4364,5436,5404,,,,,,
+kyber512,m4fstack,2304,2360,2336,,,,,,
+Signature Schemes,,,,,,,,,,
+Scheme,Implementation,Key Generation [bytes],Sign [bytes],Verify [bytes],,,,,,
+Hashing Evaluation,,,,,,,,,,
+Key Encapsulation Schemes,,,,,,,,,,
+Scheme,Implementation,Key Generation [%],Encapsulation [%],Decapsulation [%],,,,,,
+kyber512,clean,51.3,42.1,33.4,,,,,,
+kyber512,m4fspeed,75.2,72.2,66.0,,,,,,
+kyber512,m4fstack,75.4,72.0,65.9,,,,,,
+Signature Schemes,,,,,,,,,,
+Scheme,Implementation,Key Generation [%],Sign [%],Verify [%],,,,,,
+Size Evaluation,,,,,,,,,,
+Key Encapsulation Schemes,,,,,,,,,,
+Scheme,Implementation,.text [bytes],.data [bytes],.bss [bytes],Total [bytes],,,,,
+kyber512,clean,5024,0,0,5024,,,,,
+kyber512,m4fspeed,15712,0,0,15712,,,,,
+kyber512,m4fstack,13212,0,0,13212,,,,,
+Signature Schemes,,,,,,,,,,
+Scheme,Implementation,.text [bytes],.data [bytes],.bss [bytes],Total [bytes],,,,,
