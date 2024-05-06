@@ -7,6 +7,7 @@ KEM_SCHEMES := \
 	crypto_kem/kyber512/m4fstack \
 	crypto_kem/kyber512/m4fspeed \
 	crypto_kem/bikel3/m4f \
+	crypto_kem/kyber512_ascon/clean \
 	mupq/crypto_kem/bikel1/opt \
 	mupq/crypto_kem/bikel3/opt \
 	mupq/pqclean/crypto_kem/mceliece6960119f/clean \
@@ -23,7 +24,6 @@ KEM_SCHEMES := \
 	mupq/pqclean/crypto_kem/hqc-128/clean \
 	mupq/pqclean/crypto_kem/mceliece8192128/clean \
 	mupq/pqclean/crypto_kem/mceliece348864f/clean \
-	mupq/pqclean/crypto_kem/kyber512_ascon/clean \
 	mupq/pqclean/crypto_kem/mceliece460896f/clean \
 	mupq/pqclean/crypto_kem/hqc-256/clean
 
