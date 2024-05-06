@@ -3,6 +3,7 @@
 *.elf
 *.a
 *.d
+*.log.*
 testvectors/
 benchmarks/
 __pycache__/
